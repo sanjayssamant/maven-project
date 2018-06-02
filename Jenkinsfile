@@ -1,12 +1,19 @@
 pipeline {
     agent any
-    tools {
-        maven "LocalMaven"
+
+    parameters {
+         string(name: 'tomcat_dev', defaultValue: 'localhost:8090', description: 'Staging Server')
+         string(name: 'tomcat_prod', defaultValue: 'localhost:9090', description: 'Production Server')
     }
-    stages{
+
+    triggers {
+         pollSCM('* * * * *')
+     }
+
+stages{
         stage('Build'){
             steps {
-               bat 'mvn clean package'
+                sh 'mvn clean package'
             }
             post {
                 success {
@@ -14,30 +21,22 @@ pipeline {
                     archiveArtifacts artifacts: '**/target/*.war'
                 }
             }
-
         }
-        stage ('Deploy To Staging') {
-            steps {
-                build job: 'deploy-to-staging'
-            }
 
-        }
-        stage ('Deploy To Production') {
-            steps{
-                timeout(time:5,unit:'DAYS'){
-                    input message: 'Approve Production Deployment'
+        stage ('Deployments'){
+            parallel{
+                stage ('Deploy to Staging'){
+                    steps {
+                        sh "scp -i /home/jenkins/tomcat-demo.pem **/target/*.war tomcat@${params.tomcat_dev}:/var/lib/tomcat7/webapps"
+                    }
                 }
-                build job: 'deploy-to-prod'
-            }
-            post {
-                success{
-                    echo 'Code deployed to Production'
-                }
-                failure{
-                    echo 'Deployement failed.'
+
+                stage ("Deploy to Production"){
+                    steps {
+                        sh "scp -i /home/jenkins/tomcat-demo.pem **/target/*.war tomcat@${params.tomcat_prod}:/var/lib/tomcat7/webapps"
+                    }
                 }
             }
         }
-
     }
 }
