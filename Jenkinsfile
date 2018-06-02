@@ -1,15 +1,15 @@
 pipeline {
     agent any
-
-    parameters {
+    
+    parameters { 
          string(name: 'tomcat_dev', defaultValue: 'localhost:8090', description: 'Staging Server')
          string(name: 'tomcat_prod', defaultValue: 'localhost:9090', description: 'Production Server')
-    }
-
+    } 
+ 
     triggers {
-         pollSCM('* * * * *')
+         pollSCM('* * * * *') // Polling Source Control
      }
-
+ 
 stages{
         stage('Build'){
             steps {
@@ -22,18 +22,18 @@ stages{
                 }
             }
         }
-
+ 
         stage ('Deployments'){
             parallel{
                 stage ('Deploy to Staging'){
                     steps {
-                       bat "copy -i /home/jenkins/tomcat-demo.pem **/target/*.war tomcat@${params.tomcat_dev}:/var/lib/tomcat7/webapps"
+                        bat "winscp -i /home/jenkins/tomcat-demo.pem **/target/*.war tomcat@${params.tomcat_dev}:/var/lib/tomcat7/webapps"
                     }
                 }
-
+ 
                 stage ("Deploy to Production"){
                     steps {
-                        bat "copy -i /home/jenkins/tomcat-demo.pem **/target/*.war tomcat@${params.tomcat_prod}:/var/lib/tomcat7/webapps"
+                        bat "winscp -i /home/jenkins/tomcat-demo.pem **/target/*.war tomcat@${params.tomcat_prod}:/var/lib/tomcat7/webapps"
                     }
                 }
             }
